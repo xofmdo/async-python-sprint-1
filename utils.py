@@ -19,6 +19,10 @@ ERR_MESSAGE_TEMPLATE = "Something wrong. Please contact with mentor."
 
 MIN_MAJOR_PYTHON_VER = 3
 MIN_MINOR_PYTHON_VER = 9
+RESULT_FILE_NAME = 'analyzed_data.json'
+START_TIME = 8
+END_TIME = 20
+CONDITIONS = ('clear', 'partly-cloudy', 'cloudy', 'overcast')
 
 
 def check_python_version():

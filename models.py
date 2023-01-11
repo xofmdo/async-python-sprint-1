@@ -30,3 +30,11 @@ class DayWeatherConditionsModel(BaseModel):
 class CombinedWeatherConditionsModel(BaseModel):
     city: str
     data: list[DayWeatherConditionsModel]
+
+
+class FinalOutputModel(BaseModel):
+    city: str
+    data: list[DayWeatherConditionsModel]
+    total_avg_temp: float
+    total_clear_weather_cond: int
+    rating: int
