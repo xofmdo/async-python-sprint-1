@@ -1,3 +1,5 @@
+import logging
+
 CITIES = {
     "MOSCOW": "https://code.s3.yandex.net/async-module/moscow-response.json",
     "PARIS": "https://code.s3.yandex.net/async-module/paris-response.json",
@@ -23,6 +25,13 @@ RESULT_FILE_NAME = 'analyzed_data.json'
 START_TIME = 8
 END_TIME = 20
 CONDITIONS = ('clear', 'partly-cloudy', 'cloudy', 'overcast')
+
+logging.basicConfig(
+    filename="forecasting.log",
+    format="%(asctime)s::%(levelname)s::%(message)s",
+    level="DEBUG",
+)
+logger = logging.getLogger('forecasting')
 
 
 def check_python_version():

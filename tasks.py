@@ -5,7 +5,7 @@ from models import (
     CityModel, DayWeatherConditionsModel,
     CombinedWeatherConditionsModel, FinalOutputModel
 )
-from utils import RESULT_FILE_NAME, START_TIME, END_TIME, CONDITIONS
+from utils import RESULT_FILE_NAME, START_TIME, END_TIME, CONDITIONS, logger
 
 
 class DataFetchingTask:
@@ -14,9 +14,13 @@ class DataFetchingTask:
     """
     ywAPI: YandexWeatherAPI = YandexWeatherAPI()
 
-    def get_data(self, city_name: str) -> CityModel:
+    def make_request(self, city_name: str) -> CityModel:
         """Получение данных по API"""
+        logger.info("Making request to Yandex Weather API for city: %s",
+                    city_name)
         city_data = self.ywAPI.get_forecasting(city_name)
+        logger.debug("API response: %s", city_data)
+
         return CityModel(
             city=city_name,
             forecasts=city_data
@@ -37,10 +41,11 @@ class DataCalculationTask:
         else:
             return 0
 
-    def __calculating_data(self,
-                           city_data: CityModel) -> CombinedWeatherConditionsModel:
+    def __calculating_data(self, city_data: CityModel) -> \
+            CombinedWeatherConditionsModel:
         """ Вычисление средних показателей"""
 
+        logger.info("Calculating statistics for city: %s", city_data.city)
         weather_data = []
         for day in city_data.forecasts.forecasts:
             result_temp_for_day = []
@@ -51,7 +56,8 @@ class DataCalculationTask:
                     result_temp_for_day.append(hour.temp)
                     count_clear_cond += \
                         1 if hour.condition in CONDITIONS else 0
-
+            logger.debug("Creating and adding a DayWeatherConditionsModel to "
+                         "a list for city: %s", city_data.city)
             weather_data.append(
                 DayWeatherConditionsModel(
                     date=day.date,
@@ -78,7 +84,11 @@ class DataCalculationTask:
                 list_avg_temp.append(element.daily_avg_temp)
                 total_avg_clear_weather_cond += element.clear_weather_cond
 
+        logger.debug("Calculation of averages for city: %s", data.city)
         total_avg_temperature = self.__additional_calculating(list_avg_temp)
+
+        logger.debug("Creating and returning a FinalOutputModel to "
+                     "for city: %s", data.city)
         return FinalOutputModel(
             city=data.city,
             data=data.data,
@@ -90,9 +100,14 @@ class DataCalculationTask:
     def general_calculation(self,
                             city_data: CityModel) -> FinalOutputModel:
         """Вычисление результатов для обработки вне класса"""
+        logger.info("Getting the FinalOutputModel for city: %s",
+                    city_data.city)
 
         calculating = self.__calculating_data(city_data)
         result = self.__calc_general_indicators_for_day(calculating)
+        logger.debug("Returning the FinalOutputModel for city: %s",
+                     city_data.city)
+
         return result
 
     @staticmethod
@@ -104,14 +119,20 @@ class DataCalculationTask:
              one_model.total_avg_temp,
              one_model.total_clear_weather_cond) for one_model in data
         ]
+
         sorted_rating = sorted(total_rating, key=lambda x: (-x[1], -x[2]))
+
         dict_rating = {
             a[0]: i + 1 for i, a in enumerate(sorted_rating)}
+        logger.debug("Adding a rating to each city: %s",
+                     dict_rating)
+
         for element in data:
             element.rating = dict_rating[element.city]
-        result = [
-            element.dict() for element in data
-        ]
+
+        result = [element.dict() for element in data]
+        logger.debug("Converting models to a dictionary")
+
         return result
 
 
@@ -124,6 +145,7 @@ class DataAggregationTask:
     def save_results(to_save: list[dict]) -> None:
         """Сохранение аналитических данных"""
 
+        logger.debug("Saving results to a file")
         with open(RESULT_FILE_NAME, 'w', encoding='utf-8') as file:
             json.dump(to_save, file, indent=2)
 
@@ -137,6 +159,7 @@ class DataAnalyzingTask:
     def get_result(data: list[dict]) -> str:
         """Получение результата"""
 
+        logger.info("Finding the best temperature and number of sunny days")
         result = []
         max_temp = -9999
         sunniest_weather = 0
@@ -146,6 +169,7 @@ class DataAnalyzingTask:
                 sunniest_weather = city_data['total_clear_weather_cond']
                 break
 
+        logger.info("Adding eligible cities to the final list")
         for city_data in data:
             if city_data['total_avg_temp'] == max_temp or \
                     city_data['total_clear_weather_cond'] == sunniest_weather:
@@ -164,7 +188,7 @@ class DataAnalyzingTask:
         for city in result:
             result_str += f' {city["city"]}, средняя температура: ' \
                           f'{city["total_avg_temp"]}, а количество ' \
-                          f'времени без осадков {city["total_clear_weather_cond"]} ' \
-                          f'часов.\n'
+                          f'времени без осадков ' \
+                          f'{city["total_clear_weather_cond"]} часов.\n'
 
         return answer + result_str
