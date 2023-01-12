@@ -1,5 +1,4 @@
 import json
-
 from api_client import YandexWeatherAPI
 from models import (
     CityModel, DayWeatherConditionsModel,
@@ -20,7 +19,6 @@ class DataFetchingTask:
                     city_name)
         city_data = self.ywAPI.get_forecasting(city_name)
         logger.debug("API response: %s", city_data)
-
         return CityModel(
             city=city_name,
             forecasts=city_data
@@ -41,7 +39,7 @@ class DataCalculationTask:
         else:
             return 0
 
-    def __calculating_data(self, city_data: CityModel) -> \
+    def _calculating_data(self, city_data: CityModel) -> \
             CombinedWeatherConditionsModel:
         """ Вычисление средних показателей"""
 
@@ -71,9 +69,9 @@ class DataCalculationTask:
             data=weather_data,
         )
 
-    def __calc_general_indicators_for_day(self,
-                                          data:
-                                          CombinedWeatherConditionsModel) -> \
+    def _calc_general_indicators_for_day(self,
+                                         data:
+                                         CombinedWeatherConditionsModel) -> \
             FinalOutputModel:
         """Добавление финальных показателей"""
 
@@ -103,11 +101,10 @@ class DataCalculationTask:
         logger.info("Getting the FinalOutputModel for city: %s",
                     city_data.city)
 
-        calculating = self.__calculating_data(city_data)
-        result = self.__calc_general_indicators_for_day(calculating)
+        calculating = self._calculating_data(city_data)
+        result = self._calc_general_indicators_for_day(calculating)
         logger.debug("Returning the FinalOutputModel for city: %s",
                      city_data.city)
-
         return result
 
     @staticmethod
@@ -190,5 +187,4 @@ class DataAnalyzingTask:
                           f'{city["total_avg_temp"]}, а количество ' \
                           f'времени без осадков ' \
                           f'{city["total_clear_weather_cond"]} часов.\n'
-
         return answer + result_str
