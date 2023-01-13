@@ -11,13 +11,13 @@ class DataFetchingTask:
     """
     Получение данных через API
     """
-    ywAPI: YandexWeatherAPI = YandexWeatherAPI()
+    yw_api: YandexWeatherAPI = YandexWeatherAPI()
 
     def make_request(self, city_name: str) -> CityModel:
         """Получение данных по API"""
         logger.info("Making request to Yandex Weather API for city: %s",
                     city_name)
-        city_data = self.ywAPI.get_forecasting(city_name)
+        city_data = self.yw_api.get_forecasting(city_name)
         logger.debug("API response: %s", city_data)
         return CityModel(
             city=city_name,
@@ -34,10 +34,9 @@ class DataCalculationTask:
     def __additional_calculating(temp_data: list) -> float:
         """ Вычисление средних показателей с округлением."""
 
-        if temp_data:
-            return round(sum(temp_data) / len(temp_data), 2)
-        else:
+        if not temp_data:
             return 0
+        return round(sum(temp_data) / len(temp_data), 2)
 
     def _calculating_data(self, city_data: CityModel) -> \
             CombinedWeatherConditionsModel:
@@ -139,7 +138,7 @@ class DataAggregationTask:
     """
 
     @staticmethod
-    def save_results(to_save: list[dict]) -> None:
+    def save_results_as_json(to_save: list[dict]) -> None:
         """Сохранение аналитических данных"""
 
         logger.debug("Saving results to a file")

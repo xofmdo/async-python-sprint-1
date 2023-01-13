@@ -52,7 +52,7 @@ def test_calculate_general(city_data: CityModel):
 
 
 def test_data_aggregation(final_data):
-    DataAggregationTask.save_results(final_data)
+    DataAggregationTask.save_results_as_json(final_data)
     assert Path(RESULT_FILE_NAME).exists()
 
 
