@@ -9,7 +9,8 @@ from models import (
     CityModel, DayWeatherConditionsModel,
     CombinedWeatherConditionsModel, FinalOutputModel
 )
-from utils import RESULT_FILE_NAME, START_TIME, END_TIME, CONDITIONS, logger, COLUMNS_NAME
+from utils import RESULT_FILE_NAME, START_TIME, END_TIME, CONDITIONS, logger, \
+    COLUMNS_NAME, XLSX_FILE_NAME
 
 
 class DataFetchingTask:
@@ -142,6 +143,9 @@ class DataAggregationTask:
     Объединение вычисленных данных
     """
 
+    def __init__(self, lock):
+        self.__lock = lock
+
     @staticmethod
     def save_results_as_json(to_save: list[dict]) -> None:
         """Сохранение аналитических данных в формате Json"""
@@ -153,7 +157,7 @@ class DataAggregationTask:
     @staticmethod
     def prepare_table_xlsx(data: list[dict]) -> None:
         """Создание таблицы и заполнение первой строки"""
-
+        logger.info("Creating an xlsx table and creating column names")
         wb = Workbook()
         sheet = wb.active
         data_first_string = ['Страна/день', 'Показатель', 'Среднее', 'Рейтинг']
@@ -167,12 +171,13 @@ class DataAggregationTask:
         for row in range((amount_city + 1) * 2):
             sheet.row_dimensions[row].height = 20
         sheet.append(data_first_string)
-        wb.save('test_tmp_file.xlsx')
+        wb.save(XLSX_FILE_NAME)
+        logger.debug("Saving xlsx table with column names")
 
     @staticmethod
     def preparing_data_for_insertion(element: dict) -> (list, list):
         """Подготовка данных для вставки в таблицу"""
-
+        logger.debug("Create row 1 for the city: %s", element.get('city'))
         row_1 = [
             element.get('city'),
             'Температура, среднее',
@@ -181,6 +186,7 @@ class DataAggregationTask:
             element.get('total_avg_temp'),
             element.get('rating')
         ]
+        logger.debug("Create row 2 for the city: %s", element.get('city'))
         row_2 = [
             '',
             'Без осадков, часов',
@@ -189,24 +195,35 @@ class DataAggregationTask:
             element.get('total_clear_weather_cond'),
             ''
         ]
-
+        logger.info("Return prepared data")
         return row_1, row_2
 
-    @staticmethod
-    def filling_in_table(element: list | tuple) -> None:
+    def filling_in_table(self, element: list | tuple) -> None:
         """Вставка данных в таблицу"""
+        logger.debug("Blocking a thread anf inserting data for a city: %s",
+                     element[0][0])
+        self.__lock.acquire()
+        try:
+            wb = openpyxl.load_workbook(XLSX_FILE_NAME)
+            sheet = wb.active
+            sheet.append(element[0])
+            logger.debug("Successfully written to the table: %s",
+                         '; '.join(str(i) for i in element[0]))
+            sheet.append(element[1])
+            logger.debug("Successfully written to the table: %s",
+                         '; '.join(str(i) for i in element[1]))
+            wb.save(XLSX_FILE_NAME)
 
-        wb = openpyxl.load_workbook('test_tmp_file.xlsx')
-        sheet = wb.active
-        sheet.append(element[0])
-        sheet.append(element[1])
-        wb.save('test_tmp_file.xlsx')
+        finally:
+            self.__lock.release()
+
+        logger.debug("Came out and unblocked the stream")
 
     @staticmethod
     def adding_boarder():
         """Добавление разметки между столбцами и колонками"""
 
-        wb = openpyxl.load_workbook('test_tmp_file.xlsx')
+        wb = openpyxl.load_workbook(XLSX_FILE_NAME)
         sheet = wb.active
         thins = Side(border_style="thin", color="000000")
         for row in range(1, 33):
@@ -220,7 +237,9 @@ class DataAggregationTask:
                         right=thins,
                         top=thins,
                         end=thins)
-        wb.save('test_tmp_file.xlsx')
+        wb.save(XLSX_FILE_NAME)
+        logger.debug("Added markup between columns and columns "
+                     "and saved the file")
 
 
 class DataAnalyzingTask:

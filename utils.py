@@ -22,6 +22,7 @@ ERR_MESSAGE_TEMPLATE = "Something wrong. Please contact with mentor."
 MIN_MAJOR_PYTHON_VER = 3
 MIN_MINOR_PYTHON_VER = 9
 RESULT_FILE_NAME = 'analyzed_data.json'
+XLSX_FILE_NAME = 'analyzed_data_file.xlsx'
 START_TIME = 8
 END_TIME = 20
 CONDITIONS = ('clear', 'partly-cloudy', 'cloudy', 'overcast')
@@ -39,8 +40,8 @@ def check_python_version():
     import sys
 
     if (
-        sys.version_info.major < MIN_MAJOR_PYTHON_VER
-        or sys.version_info.minor < MIN_MINOR_PYTHON_VER
+            sys.version_info.major < MIN_MAJOR_PYTHON_VER
+            or sys.version_info.minor < MIN_MINOR_PYTHON_VER
     ):
         raise Exception(
             "Please use python version >= {}.{}".format(

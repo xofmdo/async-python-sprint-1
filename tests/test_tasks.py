@@ -6,7 +6,7 @@ from models import CityModel, FinalOutputModel, DayWeatherConditionsModel, \
     CombinedWeatherConditionsModel
 from tasks import DataAggregationTask, DataAnalyzingTask, DataCalculationTask, \
     DataFetchingTask
-from utils import RESULT_FILE_NAME
+from utils import RESULT_FILE_NAME, XLSX_FILE_NAME
 
 
 @pytest.mark.parametrize('city', ['PARIS'])
@@ -62,3 +62,8 @@ def test_data_analyzing_get_result(data_for_result):
            'часов.\n'
     result = DataAnalyzingTask().get_result(data_for_result)
     assert data == result
+
+
+def test_create_xlsx_file(data_for_result):
+    DataAggregationTask.prepare_table_xlsx(data_for_result)
+    assert Path(XLSX_FILE_NAME).exists()

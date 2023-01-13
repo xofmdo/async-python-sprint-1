@@ -1,3 +1,4 @@
+import threading
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from tasks import (
@@ -8,9 +9,6 @@ from tasks import (
 )
 from utils import CITIES, logger
 
-
-# можно было реализовать вычисление результатов по городам через Queue, но
-# преимуществ у данного способа перед ProcessPoolExecutor() не увидел
 
 def forecast_weather() -> str:
     class_for_analysis = DataAnalyzingTask()
@@ -31,7 +29,26 @@ def forecast_weather() -> str:
         )
     result_data = class_for_calculations.adding_rating(list(data))
 
-    DataAggregationTask().save_results(result_data)
+    lock = threading.RLock()
+    table_aggr = DataAggregationTask(lock)
+
+    table_aggr.save_results_as_json(result_data)
+    table_aggr.prepare_table_xlsx(result_data)
+
+    with ThreadPoolExecutor() as pool:
+        list_to_insert = pool.map(
+            table_aggr.preparing_data_for_insertion,
+            result_data
+        )
+    current_result = list(list_to_insert)
+
+    for i in range(len(current_result)):
+        process = threading.Thread(target=table_aggr.filling_in_table,
+                                   args=(current_result[i],))
+        process.start()
+        process.join()
+
+    table_aggr.adding_boarder()
     results_analysis = class_for_analysis.get_result(result_data)
 
     return results_analysis
