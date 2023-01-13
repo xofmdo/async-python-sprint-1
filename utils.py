@@ -25,6 +25,7 @@ RESULT_FILE_NAME = 'analyzed_data.json'
 START_TIME = 8
 END_TIME = 20
 CONDITIONS = ('clear', 'partly-cloudy', 'cloudy', 'overcast')
+COLUMNS_NAME = 'ABCDEFGHIJ'
 
 logging.basicConfig(
     filename="forecasting.log",

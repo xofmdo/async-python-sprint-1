@@ -6,3 +6,5 @@ __pycache__/
 analyzed_data.json
 /venv
 .github
+forecasting.log
+

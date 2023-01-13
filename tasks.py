@@ -1,10 +1,15 @@
 import json
+
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.styles import Border, Side
+
 from api_client import YandexWeatherAPI
 from models import (
     CityModel, DayWeatherConditionsModel,
     CombinedWeatherConditionsModel, FinalOutputModel
 )
-from utils import RESULT_FILE_NAME, START_TIME, END_TIME, CONDITIONS, logger
+from utils import RESULT_FILE_NAME, START_TIME, END_TIME, CONDITIONS, logger, COLUMNS_NAME
 
 
 class DataFetchingTask:
@@ -139,11 +144,83 @@ class DataAggregationTask:
 
     @staticmethod
     def save_results_as_json(to_save: list[dict]) -> None:
-        """Сохранение аналитических данных"""
+        """Сохранение аналитических данных в формате Json"""
 
         logger.debug("Saving results to a file")
         with open(RESULT_FILE_NAME, 'w', encoding='utf-8') as file:
             json.dump(to_save, file, indent=2)
+
+    @staticmethod
+    def prepare_table_xlsx(data: list[dict]) -> None:
+        """Создание таблицы и заполнение первой строки"""
+
+        wb = Workbook()
+        sheet = wb.active
+        data_first_string = ['Страна/день', 'Показатель', 'Среднее', 'Рейтинг']
+        elm_from_data = data[0].get('data')
+        amount_city = len(data)
+        list_of_days = [i.get('date') for i in elm_from_data]
+        for idx in range(len(list_of_days)):
+            data_first_string.insert(2 + idx, list_of_days[idx])
+        for letter in COLUMNS_NAME:
+            sheet.column_dimensions[letter].width = 15
+        for row in range((amount_city + 1) * 2):
+            sheet.row_dimensions[row].height = 20
+        sheet.append(data_first_string)
+        wb.save('test_tmp_file.xlsx')
+
+    @staticmethod
+    def preparing_data_for_insertion(element: dict) -> (list, list):
+        """Подготовка данных для вставки в таблицу"""
+
+        row_1 = [
+            element.get('city'),
+            'Температура, среднее',
+            *(element.get('data')[i].get('daily_avg_temp') for i in
+              range(len(element.get('data')))),
+            element.get('total_avg_temp'),
+            element.get('rating')
+        ]
+        row_2 = [
+            '',
+            'Без осадков, часов',
+            *(element.get('data')[i].get('clear_weather_cond') for i in
+              range(len(element.get('data')))),
+            element.get('total_clear_weather_cond'),
+            ''
+        ]
+
+        return row_1, row_2
+
+    @staticmethod
+    def filling_in_table(element: list | tuple) -> None:
+        """Вставка данных в таблицу"""
+
+        wb = openpyxl.load_workbook('test_tmp_file.xlsx')
+        sheet = wb.active
+        sheet.append(element[0])
+        sheet.append(element[1])
+        wb.save('test_tmp_file.xlsx')
+
+    @staticmethod
+    def adding_boarder():
+        """Добавление разметки между столбцами и колонками"""
+
+        wb = openpyxl.load_workbook('test_tmp_file.xlsx')
+        sheet = wb.active
+        thins = Side(border_style="thin", color="000000")
+        for row in range(1, 33):
+            for col in range(1, 10):
+                if row == 32:
+                    sheet.cell(row=row, column=col).border = Border(top=thins)
+                else:
+                    sheet.cell(
+                        row=row, column=col).border = Border(
+                        left=thins,
+                        right=thins,
+                        top=thins,
+                        end=thins)
+        wb.save('test_tmp_file.xlsx')
 
 
 class DataAnalyzingTask:
