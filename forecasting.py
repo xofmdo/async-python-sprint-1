@@ -43,10 +43,10 @@ def forecast_weather() -> str:
     current_result = list(list_to_insert)
 
     for i in range(len(current_result)):
-        process = threading.Thread(target=table_aggr.filling_in_table,
-                                   args=(current_result[i],))
-        process.start()
-        process.join()
+        thread = threading.Thread(target=table_aggr.filling_in_table,
+                                  args=(current_result[i],))
+        thread.start()
+        thread.join()
 
     table_aggr.adding_boarder()
     results_analysis = class_for_analysis.get_result(result_data)

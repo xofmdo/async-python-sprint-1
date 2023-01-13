@@ -202,8 +202,7 @@ class DataAggregationTask:
         """Вставка данных в таблицу"""
         logger.debug("Blocking a thread anf inserting data for a city: %s",
                      element[0][0])
-        self.__lock.acquire()
-        try:
+        with self.__lock:
             wb = openpyxl.load_workbook(XLSX_FILE_NAME)
             sheet = wb.active
             sheet.append(element[0])
@@ -213,9 +212,6 @@ class DataAggregationTask:
             logger.debug("Successfully written to the table: %s",
                          '; '.join(str(i) for i in element[1]))
             wb.save(XLSX_FILE_NAME)
-
-        finally:
-            self.__lock.release()
 
         logger.debug("Came out and unblocked the stream")
 
